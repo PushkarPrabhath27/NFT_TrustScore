@@ -1,0 +1,184 @@
+/* NFT TrustScore Analyzer Styles */
+
+:root {
+  --primary-color: #3498db;
+  --primary-dark: #2980b9;
+  --secondary-color: #2c3e50;
+  --light-bg: #f9f9f9;
+  --border-color: #ddd;
+  --error-color: #e74c3c;
+  --success-color: #2ecc71;
+  --text-color: #333;
+  --light-text: #666;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  line-height: 1.6;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  color: var(--text-color);
+  background-color: #f5f7fa;
+}
+
+h1, h2 {
+  color: var(--secondary-color);
+  margin-bottom: 20px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--light-text);
+  margin-bottom: 30px;
+  font-size: 1.1rem;
+}
+
+.container {
+  background-color: white;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border 0.3s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  display: block;
+  margin: 0 auto;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background-color: var(--primary-dark);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.result {
+  margin-top: 30px;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  display: none;
+  overflow: auto;
+  max-height: 500px;
+}
+
+.loading {
+  text-align: center;
+  display: none;
+  padding: 20px 0;
+}
+
+.loading:after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 10px auto;
+  border-radius: 50%;
+  border: 5px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  color: var(--error-color);
+  margin-top: 10px;
+  display: none;
+  font-size: 0.9rem;
+}
+
+pre {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  overflow: auto;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hathor-badge {
+  display: inline-block;
+  background-color: #6c5ce7;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.info-section {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.info-section h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 15px;
+  }
+  
+  .container {
+    padding: 20px;
+  }
+  
+  h1 {
+    font-size: 1.8rem;
+  }
+}

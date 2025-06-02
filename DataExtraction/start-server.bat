@@ -1,0 +1,3 @@
+@echo off
+echo Starting Mock API Server...
+"C:\Program Files\nodejs\node.exe" mock-api-server.cjs

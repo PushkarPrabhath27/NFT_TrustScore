@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT TrustScore Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>NFT TrustScore Analyzer</h1>
+        <p class="subtitle">Powered by Hathor Blockchain Technology</p>
+        
+        <div class="form-group">
+            <label for="contractAddress">Ethereum NFT Smart Contract Address:</label>
+            <input type="text" id="contractAddress" placeholder="e.g. 0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb" />
+            <div class="error" id="addressError">Please enter a valid Ethereum contract address</div>
+        </div>
+        
+        <button id="analyzeBtn">Analyze Contract</button>
+        
+        <div class="loading" id="loadingIndicator">
+            <p>Analyzing contract and processing with Hathor blockchain... This may take a few moments.</p>
+        </div>
+        
+        <div class="result" id="resultContainer">
+            <h2>Analysis Results <span class="hathor-badge">Hathor Verified</span></h2>
+            <pre id="resultJson"></pre>
+        </div>
+        
+        <div class="info-section">
+            <h3>About NFT TrustScore System</h3>
+            <p>This system analyzes NFT smart contracts from platforms like OpenSea using Hathor blockchain technology. When you provide a smart contract address, the system will:</p>
+            <ul>
+                <li>Analyze various metrics including market segment, collection data, and price intelligence</li>
+                <li>Generate a comprehensive trust score with risk assessment</li>
+                <li>Detect potential fraud indicators</li>
+                <li>Store analysis results securely on the Hathor blockchain</li>
+            </ul>
+            <p>All analysis is performed using Hathor's unique DAG (Directed Acyclic Graph) structure for enhanced security and reliability.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const contractInput = document.getElementById('contractAddress');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultJson = document.getElementById('resultJson');
+            const addressError = document.getElementById('addressError');
+            
+            // Validate Ethereum address format
+            function isValidEthereumAddress(address) {
+                // Check if address is defined and is a string
+                if (!address || typeof address !== 'string') {
+                    return false;
+                }
+                
+                // Check if address matches Ethereum address format (0x followed by 40 hex characters)
+                return /^0x[a-fA-F0-9]{40}$/.test(address);
+            }
+            
+            analyzeBtn.addEventListener('click', async function() {
+                const contractAddress = contractInput.value.trim();
+                
+                // Validate input
+                if (!isValidEthereumAddress(contractAddress)) {
+                    addressError.style.display = 'block';
+                    return;
+                }
+                
+                addressError.style.display = 'none';
+                loadingIndicator.style.display = 'block';
+                resultContainer.style.display = 'none';
+                
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ contractAddress })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Format the display based on contract type
+                        let resultHtml = '';
+                        
+                        if (data.data.isContract === false) {
+                            resultHtml = `<div class="result-header">
+                                <h3>Non-Contract Address Analysis</h3>
+                                <p>Address: ${data.data.contractAddress}</p>
+                                <p>Balance: ${data.data.balance} ETH</p>
+                                <p>Note: ${data.data.note}</p>
+                            </div>`;
+                        } else if (data.data.type === 'other-contract') {
+                            resultHtml = `<div class="result-header">
+                                <h3>Non-NFT Smart Contract Analysis</h3>
+                                <p>Contract: ${data.data.name || 'Unknown'}</p>
+                                <p>Address: ${data.data.contractAddress}</p>
+                                <p>Note: ${data.data.note}</p>
+                            </div>`;
+                        }
+                        
+                        // Add the full JSON data below the formatted display
+                        resultHtml += `<pre id="resultJson">${JSON.stringify(data.data, null, 2)}</pre>`;
+                        resultContainer.innerHTML = resultHtml;
+                        resultContainer.style.display = 'block';
+                    } else {
+                        throw new Error(data.message || 'Analysis failed');
+                    }
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                } finally {
+                    loadingIndicator.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Application Configuration
+PORT=3000
+NODE_ENV=development
+
+# Database Connection
+# If using local MongoDB, this is usually fine.
+# If using MongoDB Atlas, replace this with your Atlas connection string.
+MONGODB_URI=mongodb://localhost:27017/nft_analysis
+
+# Ethereum Blockchain Integration
+ETHEREUM_NODE_URL=https://mainnet.infura.io/v3/fa78dc0d8c2f483995c65050bda82f00
+
+# Hathor Blockchain Integration
+HATHOR_HEADLESS_URL=http://localhost:8000/v1a/
+HATHOR_WALLET_ID=nft-analysis-wallet
+HATHOR_NODE_URL=https://node1.hackaton.hathor.network/v1a/
+HATHOR_WALLET_SEED=spatial scale walk large harvest hospital essay matrix garbage ketchup notable ritual theory raccoon glad bottom work bronze manual risk donate until hard ketchup
+
+# OpenSea Service
+OPENSEA_API_URL=https://api.opensea.io/api/v1
+OPENSEA_API_KEY=35c310c1c29846db8a57a47413a85efc
+
+# Market Data Service
+# Note: The URL you provided for marketdata.app seems to be for a specific stock (AAPL).
+# You might need a more general base URL for NFT market data if this service provides it,
+# or a different service altogether if this one is only for stocks.
+# For now, using the one you provided:
+MARKET_DATA_API_URL=https://api.marketdata.app/v1/
+MARKET_DATA_API_KEY=98470c67959746b98b1f6ee26e55a15d
