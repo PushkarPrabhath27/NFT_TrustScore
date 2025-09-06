@@ -19,7 +19,20 @@ const __dirname = dirname(__filename);
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Determine port: priority 1) --port CLI arg, 2) PORT env var, 3) default 3001
+const argv = process.argv.slice(2);
+let cliPort;
+argv.forEach(arg => {
+  if (arg.startsWith('--port=')) {
+    const [, value] = arg.split('=');
+    const parsed = parseInt(value, 10);
+    if (!Number.isNaN(parsed)) {
+      cliPort = parsed;
+    }
+  }
+});
+
+const PORT = cliPort || process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());

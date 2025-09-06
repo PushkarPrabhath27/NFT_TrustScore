@@ -97,10 +97,78 @@ API_PORT=3000
 ```
 
 ### Running the Application
+
+#### Backend
 ```bash
 cd DataExtraction
 npm start
 ```
+
+#### Frontend
+```bash
+cd DataExtraction/frontend
+npm start
+```
+
+## Dynamic Backend Discovery
+
+The frontend now includes **automatic backend discovery** that eliminates port conflicts and hardcoded dependencies. The system automatically:
+
+- ✅ **Finds the backend** regardless of which port it's running on
+- ✅ **Handles port conflicts** by trying multiple ports automatically
+- ✅ **Provides user feedback** with connection status and error messages
+- ✅ **Caches results** for better performance
+- ✅ **Retries on failure** with intelligent backoff
+
+### How It Works
+
+1. **Port Scanning**: Checks common ports (3001, 3000, 3002, 3003, 5000, 8000, 8080, 4000, 5001, 3004, 3005)
+2. **Health Checks**: Uses `/api/health` endpoint to verify backend availability
+3. **Automatic Fallback**: If port 3001 is taken, automatically tries the next available port
+4. **Smart Caching**: Remembers working URLs to avoid repeated discovery
+5. **Error Recovery**: Provides retry options and clear error messages
+
+### Configuration
+
+Customize the discovery behavior with environment variables:
+
+```bash
+# Backend base URL (default: http://localhost)
+REACT_APP_BACKEND_BASE_URL=http://localhost
+
+# Ports to check (default: 3001,3000,3002,3003,5000,8000,8080,4000,5001,3004,3005)
+REACT_APP_BACKEND_PORTS=[3001,3000,3002,3003,5000,8000,8080,4000,5001,3004,3005]
+
+# Health check endpoint (default: /api/health)
+REACT_APP_BACKEND_HEALTH_ENDPOINT=/api/health
+
+# Discovery timeout in milliseconds (default: 10000)
+REACT_APP_BACKEND_DISCOVERY_TIMEOUT=10000
+
+# Port check timeout in milliseconds (default: 2000)
+REACT_APP_BACKEND_PORT_TIMEOUT=2000
+
+# Cache time in milliseconds (default: 30000)
+REACT_APP_BACKEND_CACHE_TIME=30000
+
+# Enable debug logging (default: false)
+REACT_APP_DEBUG_MODE=false
+
+# Show backend status indicator (default: true)
+REACT_APP_SHOW_BACKEND_STATUS=true
+```
+
+### Troubleshooting
+
+If the frontend can't find the backend:
+
+1. **Check backend status**: Ensure the backend server is running
+2. **Verify health endpoint**: Make sure `/api/health` is accessible
+3. **Check port list**: Verify the backend port is in the discovery list
+4. **Enable debug mode**: Set `REACT_APP_DEBUG_MODE=true` for detailed logs
+5. **Check browser console**: Look for discovery messages and errors
+
+For detailed information, see [DYNAMIC_BACKEND_DISCOVERY.md](./DYNAMIC_BACKEND_DISCOVERY.md).
 
 ## Testing
 The system includes comprehensive tests for all components:

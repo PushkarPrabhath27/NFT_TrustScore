@@ -20,12 +20,7 @@ import {
   IconButton,
   Fade
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  Info as InfoIcon,
-  Clear as ClearIcon,
-  AccountBalanceWallet as WalletIcon
-} from '@mui/icons-material';
+import { FiSearch, FiInfo, FiX, FiHome } from 'react-icons/fi';
 import apiService from '../services/ApiService';
 
 const ContractInputForm = () => {
@@ -137,13 +132,46 @@ const ContractInputForm = () => {
       // Make the API call to analyze the contract
       const response = await apiService.analyzeContract(contractAddress);
       
+      console.log('[ContractInputForm] API Response received:', {
+        success: response?.success,
+        hasData: !!response?.data,
+        dataKeys: response?.data ? Object.keys(response.data) : [],
+        responseStructure: {
+          success: typeof response?.success,
+          data: typeof response?.data,
+          source: response?.source
+        }
+      });
+      
       if (!response || !response.success) {
         throw new Error(response?.error || 'Failed to analyze contract');
       }
       
+      // Log the analysis data structure for debugging
+      console.log('[ContractInputForm] Analysis data structure:', {
+        contractAddress: response.data?.contractAddress,
+        nftData: response.data?.nftData ? 'Present' : 'Missing',
+        trustScoreData: response.data?.trustScoreData ? 'Present' : 'Missing',
+        priceData: response.data?.priceData ? 'Present' : 'Missing',
+        riskData: response.data?.riskData ? 'Present' : 'Missing',
+        fraudData: response.data?.fraudData ? 'Present' : 'Missing',
+        collectionData: response.data?.collectionData ? 'Present' : 'Missing',
+        marketData: response.data?.marketData ? 'Present' : 'Missing',
+        portfolioData: response.data?.portfolioData ? 'Present' : 'Missing',
+        creatorData: response.data?.creatorData ? 'Present' : 'Missing'
+      });
+      
+      // Store the analysis result in localStorage for the dashboard
+      localStorage.setItem(`nftAnalysis_${contractAddress}`, JSON.stringify(response));
+      console.log('[ContractInputForm] Data stored in localStorage');
+      
       // Update the analysis result state
       setAnalysisResult(response.data);
       setLoading(false);
+      
+      // Navigate to dashboard with the contract address
+      console.log('[ContractInputForm] Analysis successful, navigating to dashboard...');
+      navigate(`/analyze/${contractAddress}`);
       
     } catch (error) {
       console.error('[ContractInputForm] Submission error:', error);
@@ -211,7 +239,7 @@ const ContractInputForm = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                    <FiSearch color="rgba(255, 255, 255, 0.7)" />
                   </InputAdornment>
                 ),
                 endAdornment: contractAddress && (
@@ -222,7 +250,7 @@ const ContractInputForm = () => {
                       disabled={loading}
                       sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
                     >
-                      <ClearIcon />
+                      <FiX />
                     </IconButton>
                   </InputAdornment>
                 )
@@ -263,7 +291,7 @@ const ContractInputForm = () => {
                 color="primary"
                 onClick={handleSubmit}
                 disabled={!isValid || loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                startIcon={loading ? <CircularProgress size={20} /> : <FiSearch />}
               >
                 {loading ? 'Analyzing...' : 'Analyze Contract'}
               </Button>
@@ -273,7 +301,7 @@ const ContractInputForm = () => {
                   variant="outlined"
                   onClick={handleConnectWallet}
                   disabled={loading}
-                  startIcon={<WalletIcon />}
+                  startIcon={<FiHome />}
                   sx={{
                     borderColor: 'rgba(255, 255, 255, 0.23)',
                     color: 'white',
@@ -291,6 +319,15 @@ const ContractInputForm = () => {
         ) : (
           <Box>
             {/* Analysis Result Content */}
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Analysis completed successfully! Redirecting to dashboard...
+            </Alert>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Contract: {contractAddress}
+            </Typography>
+            <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" sx={{ mb: 2 }}>
+              If you are not redirected automatically, please wait a moment or refresh the page.
+            </Typography>
             <Button
               variant="outlined"
               onClick={handleReset}

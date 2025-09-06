@@ -2,11 +2,16 @@
  * Centralized API Service for NFT Smart Contract Analysis System
  * Handles all backend communication with comprehensive error handling
  * and validation according to production-grade standards
+ * 
+ * This service now uses dynamic backend discovery to handle port changes
  */
+
+import dynamicApiService from './DynamicApiService.js';
 
 class ApiService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    // Legacy fallback for direct URL specification
+    this.legacyBaseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
     this.timeout = 30000; // 30 seconds timeout
     this.retryAttempts = 3;
     this.retryDelay = 1000; // 1 second initial delay
@@ -92,80 +97,8 @@ class ApiService {
    * @throws {Error} - Validation or network errors
    */
   async analyzeContract(contractAddress) {
-    // Input validation
-    if (!contractAddress) {
-      throw new Error('Contract address is required');
-    }
-
-    if (!this.validateContractAddress(contractAddress)) {
-      throw new Error('Invalid contract address format. Please provide a valid Ethereum address (0x followed by 40 hex characters)');
-    }
-
-    const trimmedAddress = contractAddress.trim();
-    console.log(`[ApiService] Analyzing contract: ${trimmedAddress}`);
-
-    const operation = async () => {
-      const response = await this.fetchWithTimeout(`${this.baseURL}/api/analyze`, {
-        method: 'POST',
-        body: JSON.stringify({ contractAddress: trimmedAddress }),
-      });
-
-      // Handle HTTP errors
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          }
-        } catch (parseError) {
-          // If we can't parse the error response, use the default message
-          console.warn('Failed to parse error response:', parseError);
-        }
-
-        const error = new Error(errorMessage);
-        error.status = response.status;
-        throw error;
-      }
-
-      const data = await response.json();
-      
-      // Validate response structure
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid response format from server');
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || data.message || 'Analysis failed');
-      }
-
-      if (!data.data) {
-        throw new Error('No analysis data received from server');
-      }
-
-      console.log('[ApiService] Analysis completed successfully');
-      return data;
-    };
-
-    try {
-      return await this.retryWithBackoff(operation);
-    } catch (error) {
-      console.error('[ApiService] Analysis failed:', error);
-      
-      // Provide user-friendly error messages
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to the analysis server. Please check your internet connection and try again.');
-      }
-      
-      if (error.message.includes('timeout')) {
-        throw new Error('The analysis is taking longer than expected. Please try again.');
-      }
-      
-      throw error;
-    }
+    console.log('[ApiService] Delegating to DynamicApiService for contract analysis');
+    return await dynamicApiService.analyzeContract(contractAddress);
   }
 
   /**
@@ -173,20 +106,8 @@ class ApiService {
    * @returns {Promise<object>} - Health status
    */
   async checkHealth() {
-    try {
-      const response = await this.fetchWithTimeout(`${this.baseURL}/api/health`);
-      
-      if (!response.ok) {
-        throw new Error(`Health check failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('[ApiService] Health check passed');
-      return data;
-    } catch (error) {
-      console.error('[ApiService] Health check failed:', error);
-      throw new Error('API server is not responding');
-    }
+    console.log('[ApiService] Delegating to DynamicApiService for health check');
+    return await dynamicApiService.checkHealth();
   }
 
   /**
@@ -255,44 +176,8 @@ class ApiService {
    * @returns {Promise<object>} - NFT analysis data
    */
   async fetchNFTData(contractAddress) {
-    if (!this.validateContractAddress(contractAddress)) {
-      throw new Error('Invalid contract address format');
-    }
-
-    const operation = async () => {
-      const response = await this.fetchWithTimeout(
-        `${this.baseURL}/api/analyze/${contractAddress}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch NFT data: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (!this.validateResponseData(data)) {
-        throw new Error('Invalid response format from server');
-      }
-
-      return {
-        success: true,
-        data: data.data
-      };
-    };
-
-    try {
-      return await this.retryWithBackoff(operation);
-    } catch (error) {
-      console.error('[ApiService] Failed to fetch NFT data:', error);
-      throw error;
-    }
+    console.log('[ApiService] Delegating to DynamicApiService for NFT data fetch');
+    return await dynamicApiService.fetchNFTData(contractAddress);
   }
 
   /**
@@ -357,6 +242,29 @@ class ApiService {
       console.warn('Invalid date string:', dateString);
       return 'Invalid Date';
     }
+  }
+
+  /**
+   * Gets the current backend URL being used
+   * @returns {string|null} - Current backend URL or null
+   */
+  getCurrentBackendURL() {
+    return dynamicApiService.getCurrentBackendURL();
+  }
+
+  /**
+   * Gets detailed service status for debugging
+   * @returns {object} - Service status information
+   */
+  getServiceStatus() {
+    return dynamicApiService.getServiceStatus();
+  }
+
+  /**
+   * Clears all caches and forces fresh backend discovery
+   */
+  clearAllCaches() {
+    dynamicApiService.clearAllCaches();
   }
 }
 

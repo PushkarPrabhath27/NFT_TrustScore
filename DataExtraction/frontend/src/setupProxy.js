@@ -1,8 +1,13 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
+  // Get backend URL from environment or use default
+  const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  
+  console.log(`[Proxy] Setting up proxy to backend: ${backendUrl}`);
+  
   const apiProxy = createProxyMiddleware({
-    target: 'http://127.0.0.1:3001',
+    target: backendUrl,
     changeOrigin: true,
     secure: false,
     xfwd: true,
@@ -36,4 +41,8 @@ module.exports = function(app) {
   });
 
   app.use('/api', apiProxy);
+  
+  // Note: This proxy setup is for development only
+  // In production, the frontend should use the dynamic backend discovery
+  // or be served from the same domain as the backend
 };

@@ -174,3 +174,4 @@ export const validateMappedData = (mappedData) => {
   console.log('🔍 [DataMapping] Validation results:', validation);
   return validation;
 };
+

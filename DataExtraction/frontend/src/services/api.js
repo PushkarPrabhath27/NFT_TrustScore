@@ -1,7 +1,8 @@
 // API Service for NFT TrustScore Analyzer
 // This service handles all API calls to the backend
+// Now uses dynamic backend discovery for port flexibility
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import dynamicApiService from './DynamicApiService.js';
 
 const apiService = {
   /**
@@ -10,33 +11,8 @@ const apiService = {
    * @returns {Promise} Promise that resolves with the NFT data
    */
   fetchNFTData: async (contractAddress) => {
-    try {
-      console.log(`[API Service] Analyzing contract: ${contractAddress}`);
-      const response = await fetch(`${API_URL}/api/analyze`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ contractAddress }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('[API Service] Received data:', data);
-      
-      if (!data.success || !data.data) {
-        throw new Error('Invalid response format from API');
-      }
-      
-      // Return the data directly as it should already be in the correct format
-      return data;
-    } catch (error) {
-      console.error('Error fetching NFT data:', error);
-      throw error;
-    }
+    console.log('[API Service] Delegating to DynamicApiService for NFT data fetch');
+    return await dynamicApiService.fetchNFTData(contractAddress);
   },
   
   /**
@@ -44,18 +20,8 @@ const apiService = {
    * @returns {Promise} Promise that resolves with the health status
    */
   checkHealth: async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/health`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error checking API health:', error);
-      throw error;
-    }
+    console.log('[API Service] Delegating to DynamicApiService for health check');
+    return await dynamicApiService.checkHealth();
   },
   
   /**
@@ -66,17 +32,22 @@ const apiService = {
    */
   setupPollingConnection: (onMessage, contractAddress) => {
     try {
-      console.log(`[Polling] Connecting to ${API_URL}`);
+      console.log(`[Polling] Setting up connection with dynamic backend discovery`);
       
       // State variables
       let isConnected = false;
       let sessionId = null;
       let pollInterval = null;
+      let currentBackendURL = null;
       
       // Connect to the server
       const connect = async () => {
         try {
-          const response = await fetch(`${API_URL}/api/ws-connect`, {
+          // Get the current backend URL using dynamic discovery
+          currentBackendURL = await dynamicApiService.ensureBackendURL();
+          console.log(`[Polling] Connecting to ${currentBackendURL}`);
+          
+          const response = await fetch(`${currentBackendURL}/api/ws-connect`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -112,13 +83,13 @@ const apiService = {
       
       // Send a message to the server
       const sendMessage = async (message) => {
-        if (!isConnected || !sessionId) {
+        if (!isConnected || !sessionId || !currentBackendURL) {
           console.error('[Polling] Cannot send message - not connected');
           return;
         }
         
         try {
-          const response = await fetch(`${API_URL}/api/ws-send`, {
+          const response = await fetch(`${currentBackendURL}/api/ws-send`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -141,10 +112,10 @@ const apiService = {
       
       // Poll for messages from the server
       const poll = async () => {
-        if (!isConnected || !sessionId) return;
+        if (!isConnected || !sessionId || !currentBackendURL) return;
         
         try {
-          const response = await fetch(`${API_URL}/api/ws-poll/${sessionId}`);
+          const response = await fetch(`${currentBackendURL}/api/ws-poll/${sessionId}`);
           
           if (!response.ok) {
             throw new Error(`Polling error: ${response.status}`);
@@ -190,10 +161,10 @@ const apiService = {
       
       // Close the connection
       const close = async () => {
-        if (!isConnected || !sessionId) return;
+        if (!isConnected || !sessionId || !currentBackendURL) return;
         
         try {
-          const response = await fetch(`${API_URL}/api/ws-close`, {
+          const response = await fetch(`${currentBackendURL}/api/ws-close`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

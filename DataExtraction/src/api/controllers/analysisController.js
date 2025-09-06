@@ -1,4 +1,4 @@
-/**
+ /**
  * Analysis Controller for NFT Smart Contract Analysis System
  * Handles the core functionality of analyzing NFT contracts
  */
@@ -863,6 +863,37 @@ async function analyzeContract(req, res, next) {
     
     // Return the analysis result
     console.log('[API] Returning full analysis result for', contractAddress);
+    
+    // 🚨 COMPREHENSIVE BACKEND RESPONSE LOGGING
+    console.log('🚨 Final API Response Structure:', {
+      success: true,
+      dataKeys: Object.keys(analysisResult),
+      summary: analysisResult.summary,
+      nftData: analysisResult.nftData,
+      trustScoreData: analysisResult.trustScoreData,
+      priceData: analysisResult.priceData,
+      riskData: analysisResult.riskData,
+      fraudData: analysisResult.fraudData,
+      collectionData: analysisResult.collectionData,
+      marketData: analysisResult.marketData,
+      portfolioData: analysisResult.portfolioData,
+      creatorData: analysisResult.creatorData
+    });
+    
+    // Log specific field validation
+    console.log('🚨 Field Validation:', {
+      'summary exists': !!analysisResult.summary,
+      'summary type': typeof analysisResult.summary,
+      'nftData exists': !!analysisResult.nftData,
+      'nftData type': typeof analysisResult.nftData,
+      'trustScoreData exists': !!analysisResult.trustScoreData,
+      'trustScoreData type': typeof analysisResult.trustScoreData,
+      'priceData exists': !!analysisResult.priceData,
+      'priceData type': typeof analysisResult.priceData,
+      'riskData exists': !!analysisResult.riskData,
+      'riskData type': typeof analysisResult.riskData
+    });
+    
     return res.status(200).json({
       success: true,
       data: analysisResult

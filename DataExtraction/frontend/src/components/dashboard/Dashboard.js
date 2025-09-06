@@ -15,6 +15,8 @@ import {
 } from '../../store/store';
 import { FiInfo, FiAlertTriangle, FiCheckCircle, FiClock, FiBarChart2, FiTrendingUp, FiUsers } from 'react-icons/fi';
 import AnalysisTabs from './analysis/AnalysisTabs';
+import DataFlowTest from '../DataFlowTest';
+import MockDataTest from '../MockDataTest';
 import { TextField, Button, CircularProgress } from '@mui/material';
 
 // Lazy load components for better performance
@@ -212,6 +214,31 @@ const Dashboard = ({ section = 'main' }) => {
   useEffect(() => {
     if (!contractAddress) return;
 
+    console.log('[Dashboard] Loading data for contract:', contractAddress);
+    
+    // First, check if we have cached data in localStorage
+    const cachedData = localStorage.getItem(`nftAnalysis_${contractAddress}`);
+    if (cachedData) {
+      try {
+        const parsedData = JSON.parse(cachedData);
+        console.log('[Dashboard] Found cached data:', {
+          success: parsedData?.success,
+          hasData: !!parsedData?.data,
+          dataKeys: parsedData?.data ? Object.keys(parsedData.data) : []
+        });
+        
+        if (parsedData?.success && parsedData?.data) {
+          console.log('[Dashboard] Using cached data, setting NFT data...');
+          setNFTData(parsedData.data);
+          setIsLoading(false);
+          setAnalysisInProgress(false);
+          return; // Don't start WebSocket if we have cached data
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error parsing cached data:', error);
+      }
+    }
+
     setAnalysisInProgress(true);
     setIsLoading(true);
     setError(null);
@@ -340,6 +367,17 @@ const Dashboard = ({ section = 'main' }) => {
     
     return (
       <>
+        {/* Analysis Tabs - Show detailed analysis data */}
+        <motion.div 
+          className="mt-8 p-6 rounded-xl bg-gray-900/60 backdrop-blur-lg border border-cyan-400/30 shadow-neon-glow"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <h2 className="text-xl font-orbitron font-bold mb-4 text-cyan-400">Detailed Analysis</h2>
+          <AnalysisTabs data={nftData} />
+        </motion.div>
+
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Trust Score */}
@@ -553,8 +591,38 @@ const Dashboard = ({ section = 'main' }) => {
             <p className="text-xl font-rajdhani text-gray-400">
               Loading NFT data...
             </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Contract: {contractAddress}
+            </p>
           </motion.div>
         )}
+
+        {/* Debug Information */}
+        {process.env.NODE_ENV === 'development' && (
+          <motion.div 
+            className="mb-4 p-4 bg-blue-900/30 border border-blue-500/50 rounded-md"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h3 className="text-blue-400 font-bold mb-2">Debug Information</h3>
+            <div className="text-sm text-blue-200 space-y-1">
+              <p>Contract Address: {contractAddress}</p>
+              <p>Has NFT Data: {nftData ? 'Yes' : 'No'}</p>
+              <p>Is Loading: {isLoading ? 'Yes' : 'No'}</p>
+              <p>Analysis In Progress: {analysisInProgress ? 'Yes' : 'No'}</p>
+              <p>WebSocket Connected: {wsConnected ? 'Yes' : 'No'}</p>
+              {nftData && (
+                <p>Data Keys: {Object.keys(nftData).join(', ')}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Data Flow Test Component */}
+        <DataFlowTest data={nftData} title="Dashboard NFT Data" />
+        
+        {/* Mock Data Test Component */}
+        <MockDataTest />
 
         {renderHeader()}
 

@@ -19,12 +19,7 @@ import {
   Tooltip,
   useMediaQuery
 } from '@mui/material';
-import {
-  Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon,
-  Analytics as AnalyticsIcon,
-  Home as HomeIcon
-} from '@mui/icons-material';
+import { FiSun, FiMoon, FiBarChart2, FiHome } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import components
@@ -180,11 +175,11 @@ const HomePage = () => {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <AnalyticsIcon 
-              sx={{ 
+            <FiBarChart2 
+              style={{ 
                 fontSize: 80, 
-                color: 'primary.main', 
-                mb: 2 
+                color: '#6366f1', 
+                marginBottom: 16 
               }} 
             />
           </motion.div>
@@ -258,10 +253,10 @@ const NavigationHeader = ({ darkMode, toggleDarkMode }) => {
     >
       <Toolbar>
         <Box display="flex" alignItems="center" flex={1}>
-          <AnalyticsIcon 
-            sx={{ 
-              color: 'primary.main', 
-              mr: 1,
+          <FiBarChart2 
+            style={{ 
+              color: '#6366f1', 
+              marginRight: 8,
               fontSize: isMobile ? 24 : 28
             }} 
           />
@@ -282,7 +277,7 @@ const NavigationHeader = ({ darkMode, toggleDarkMode }) => {
               onClick={() => window.location.href = '/'}
               sx={{ color: 'text.primary' }}
             >
-              <HomeIcon />
+              <FiHome />
             </IconButton>
           </Tooltip>
           
@@ -292,7 +287,7 @@ const NavigationHeader = ({ darkMode, toggleDarkMode }) => {
               onClick={toggleDarkMode}
               sx={{ color: 'text.primary' }}
             >
-              {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+              {darkMode ? <FiSun /> : <FiMoon />}
             </IconButton>
           </Tooltip>
         </Box>

@@ -13,7 +13,7 @@ const PORT = process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : 4001;
 const HOST = '127.0.0.1';
 
 // Ethereum API endpoints
-const ETHERSCAN_API_KEY = 'YOUR_ETHERSCAN_API_KEY'; // Replace with your actual API key
+const ETHERSCAN_API_KEY = 'fa78dc0d8c2f483995c65050bda82f00'; // Replace with your actual API key
 const ETHERSCAN_API_URL = 'https://api.etherscan.io/api';
 const OPENSEA_API_URL = 'https://api.opensea.io/api/v1';
 

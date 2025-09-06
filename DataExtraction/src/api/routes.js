@@ -46,7 +46,23 @@ router.get('/history/:contractAddress', authMiddleware, validateContractAddress,
  * @access  Public
  */
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'NFT Smart Contract Analysis System'
+  });
+});
+
+/**
+ * @route   GET /api/ping
+ * @desc    Ping endpoint for quick health checks
+ * @access  Public
+ */
+router.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    status: 'pong',
+    timestamp: new Date().toISOString()
+  });
 });
 
 export default router;

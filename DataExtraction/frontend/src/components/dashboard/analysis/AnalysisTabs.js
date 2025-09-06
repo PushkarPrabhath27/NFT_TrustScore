@@ -20,6 +20,20 @@ const tabLabels = [
 
 const AnalysisTabs = ({ data }) => {
   const [tab, setTab] = useState(0);
+  
+  console.log('[AnalysisTabs] Component rendered with data:', {
+    hasData: !!data,
+    dataType: typeof data,
+    dataKeys: data ? Object.keys(data) : [],
+    nftData: data?.nftData ? 'Present' : 'Missing',
+    trustScoreData: data?.trustScoreData ? 'Present' : 'Missing',
+    priceData: data?.priceData ? 'Present' : 'Missing',
+    riskData: data?.riskData ? 'Present' : 'Missing',
+    fraudData: data?.fraudData ? 'Present' : 'Missing',
+    collectionData: data?.collectionData ? 'Present' : 'Missing',
+    portfolioData: data?.portfolioData ? 'Present' : 'Missing'
+  });
+  
   return (
     <Box>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>

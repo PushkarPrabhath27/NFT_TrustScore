@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, Chip, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { FiAlertTriangle, FiCheckCircle } from 'react-icons/fi';
 
 const getFraudColor = (score) => {
   if (score < 30) return 'success';
@@ -25,7 +24,7 @@ const FraudData = ({ fraudData }) => {
           {indicators.map((indicator, idx) => (
             <ListItem key={idx}>
               <ListItemIcon>
-                {indicator.isRisk ? <WarningAmberIcon color="error" /> : <CheckCircleIcon color="success" />}
+                {indicator.isRisk ? <FiAlertTriangle color="red" /> : <FiCheckCircle color="green" />}
               </ListItemIcon>
               <ListItemText
                 primary={indicator.name}

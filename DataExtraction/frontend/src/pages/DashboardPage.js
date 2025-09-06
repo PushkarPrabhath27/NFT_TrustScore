@@ -6,9 +6,6 @@ import apiService from '../services/api';
 import Dashboard from '../components/dashboard/Dashboard';
 import { useStoreActions } from '../store/store';
 import { Box, Typography, Paper, CircularProgress, Chip, Grid, Tooltip, IconButton, Button, Fade, AppBar, Toolbar, Link as MuiLink } from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import HomeIcon from '@mui/icons-material/Home';
 import AnalysisTabs from '../components/dashboard/analysis/AnalysisTabs';
 
 const DashboardPage = () => {
