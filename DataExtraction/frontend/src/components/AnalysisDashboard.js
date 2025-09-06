@@ -8,7 +8,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
-  Grid,
   Typography,
   Alert,
   Skeleton,
@@ -16,8 +15,10 @@ import {
   Tooltip,
   Snackbar,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Button
 } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2';
 import {
   Refresh as RefreshIcon,
   Share as ShareIcon,
@@ -34,8 +35,21 @@ import SocialMetrics from './dashboard/SocialMetrics';
 import RecentTransactions from './dashboard/RecentTransactions';
 import TrustScoreOverview from './dashboard/TrustScoreOverview';
 
-// Import services
+// Import new section components
+import MarketPriceSection from './dashboard/sections/MarketPriceSection';
+import RiskTrustSection from './dashboard/sections/RiskTrustSection';
+import CreatorCollectionSection from './dashboard/sections/CreatorCollectionSection';
+import NFTSpecificSection from './dashboard/sections/NFTSpecificSection';
+import SummarySegmentationSection from './dashboard/sections/SummarySegmentationSection';
+import PortfolioSection from './dashboard/sections/PortfolioSection';
+
+// Import utilities and components
 import apiService from '../services/ApiService';
+import DataFlowTest from './DataFlowTest';
+import RawDataViewer from './RawDataViewer';
+import DataHealthIndicator from './DataHealthIndicator';
+import { groupAnalysisData, getOverallDataHealth, createDebugSummary } from '../utils/dataGrouping';
+import { animationVariants, dashboardStyles } from '../theme/dashboardTheme';
 
 const AnalysisDashboard = ({ contractAddress, onError }) => {
   const theme = useTheme();
@@ -48,6 +62,7 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   /**
    * Shows a snackbar notification
@@ -76,6 +91,32 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
       return;
     }
 
+    // Check localStorage first if not refreshing
+    if (!isRefresh) {
+      const cachedData = localStorage.getItem(`nftAnalysis_${contractAddress}`);
+      if (cachedData) {
+        try {
+          const parsedData = JSON.parse(cachedData);
+          console.log('[AnalysisDashboard] Found cached data:', {
+            success: parsedData?.success,
+            hasData: !!parsedData?.data,
+            dataKeys: parsedData?.data ? Object.keys(parsedData.data) : []
+          });
+          
+          if (parsedData?.success && parsedData?.data) {
+            console.log('[AnalysisDashboard] Using cached data');
+            setData(parsedData.data);
+            setLastUpdated(new Date());
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('[AnalysisDashboard] Error parsing cached data:', error);
+          // Continue to fetch fresh data if cache parsing fails
+        }
+      }
+    }
+
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -89,13 +130,56 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
       
       const result = await apiService.analyzeContract(contractAddress);
       
-      if (!result || !result.contractAddress) {
+      if (!result || !result.success || !result.data) {
         throw new Error('Invalid response data received from server');
       }
       
       console.log('[AnalysisDashboard] Data received:', result);
       
-      setData(result);
+      // 🚨 COMPREHENSIVE FRONTEND DATA LOGGING
+      console.log('🚨 Final Dashboard Data Structure:', {
+        success: result.success,
+        dataKeys: result.data ? Object.keys(result.data) : [],
+        summary: result.data?.summary,
+        nftData: result.data?.nftData,
+        trustScoreData: result.data?.trustScoreData,
+        priceData: result.data?.priceData,
+        riskData: result.data?.riskData,
+        fraudData: result.data?.fraudData,
+        collectionData: result.data?.collectionData,
+        marketData: result.data?.marketData,
+        portfolioData: result.data?.portfolioData,
+        creatorData: result.data?.creatorData
+      });
+      
+      // 🚨 DETAILED DATA INSPECTION
+      console.log('🚨 FULL BACKEND RESPONSE:', result);
+      console.log('🚨 RAW DATA OBJECT:', result.data);
+      if (result.data) {
+        console.log('🚨 DATA KEYS AND VALUES:');
+        Object.keys(result.data).forEach(key => {
+          console.log(`  ${key}:`, result.data[key], `(type: ${typeof result.data[key]})`);
+        });
+      }
+      
+      // Log specific field validation
+      console.log('🚨 Frontend Field Validation:', {
+        'summary exists': !!result.data?.summary,
+        'summary type': typeof result.data?.summary,
+        'nftData exists': !!result.data?.nftData,
+        'nftData type': typeof result.data?.nftData,
+        'trustScoreData exists': !!result.data?.trustScoreData,
+        'trustScoreData type': typeof result.data?.trustScoreData,
+        'priceData exists': !!result.data?.priceData,
+        'priceData type': typeof result.data?.priceData,
+        'riskData exists': !!result.data?.riskData,
+        'riskData type': typeof result.data?.riskData
+      });
+      
+      // Store in localStorage
+      localStorage.setItem(`nftAnalysis_${contractAddress}`, JSON.stringify(result));
+      
+      setData(result.data);
       setLastUpdated(new Date());
       
       if (isRefresh) {
@@ -175,6 +259,36 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
     }
   }, [data, showSnackbar]);
 
+  /**
+   * Handles debug data logging
+   */
+  const handleDebugData = useCallback(() => {
+    if (!data) {
+      console.log('🔍 Debug: No data available');
+      return;
+    }
+    
+    const debugSummary = createDebugSummary(data);
+    console.log('🔍 Full Analysis Data Debug Summary:', debugSummary);
+    console.log('🔍 Raw Analysis Data:', data);
+    
+    showSnackbar('Debug data logged to console', 'info');
+  }, [data, showSnackbar]);
+
+  /**
+   * Toggles debug information display
+   */
+  const toggleDebugInfo = useCallback(() => {
+    setShowDebugInfo(prev => !prev);
+  }, []);
+
+  // Memoized data health analysis
+  const dataHealth = useMemo(() => {
+    if (!data) return null;
+    const groupedData = groupAnalysisData(data);
+    return getOverallDataHealth(groupedData);
+  }, [data]);
+
   // Load data on component mount or contract address change
   useEffect(() => {
     fetchData();
@@ -182,9 +296,9 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
 
   // Memoized loading skeleton
   const loadingSkeleton = useMemo(() => (
-    <Grid container spacing={3}>
-      {Array.from({ length: 8 }).map((_, index) => (
-        <Grid item xs={12} md={6} lg={4} key={index}>
+        <Grid container spacing={3}>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Grid xs={12} md={6} lg={4} key={index}>
           <Skeleton
             variant="rectangular"
             height={200}
@@ -257,9 +371,7 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      {...animationVariants.fadeInUp}
     >
       <Box sx={{ p: { xs: 2, md: 3 } }}>
         {/* Header Section */}
@@ -289,6 +401,44 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
           )}
         </Box>
 
+        {/* Data Health Indicator */}
+        {data && (
+          <Box mb={4}>
+            <DataHealthIndicator 
+              analysisData={data}
+              onDebugClick={handleDebugData}
+              onRefreshClick={handleRefresh}
+              showDetails={showDebugInfo}
+            />
+          </Box>
+        )}
+
+        {/* Debug Controls */}
+        {process.env.NODE_ENV === 'development' && (
+          <Box mb={4} display="flex" gap={2} flexWrap="wrap">
+            <Button 
+              variant="outlined" 
+              onClick={handleDebugData}
+              size="small"
+            >
+              Debug Data to Console
+            </Button>
+            <Button 
+              variant="outlined" 
+              onClick={toggleDebugInfo}
+              size="small"
+            >
+              {showDebugInfo ? 'Hide' : 'Show'} Debug Info
+            </Button>
+          </Box>
+        )}
+
+        {/* Data Flow Test Component */}
+        <DataFlowTest data={data} title="Analysis Dashboard Data" />
+        
+        {/* Raw Data Viewer Component */}
+        <RawDataViewer data={data} title="Backend Response Data" />
+
         {/* Trust Score Overview */}
         {data?.trustScore && (
           <Box mb={4}>
@@ -304,52 +454,78 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
           </Box>
         )}
 
-        {/* Main Dashboard Grid */}
-        <Grid container spacing={3}>
-          {/* Collection Analysis */}
-          {data?.collectionData && (
-            <Grid item xs={12} lg={6}>
-              <CollectionAnalysis 
-                collectionData={data.collectionData}
-                contractInfo={{
-                  name: data.name,
-                  symbol: data.symbol,
-                  totalSupply: data.totalSupply,
-                  owner: data.owner
-                }}
+        {/* Main Dashboard Grid - New Section-Based Layout */}
+        <motion.div
+          {...animationVariants.staggerContainer}
+        >
+          <Grid container spacing={3}>
+          {/* Summary & Segmentation Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <SummarySegmentationSection 
+                summary={data?.summary}
+                marketSegment={data?.marketSegment}
+                marketPositionScore={data?.marketPositionScore}
               />
-            </Grid>
-          )}
+            </motion.div>
+          </Grid>
 
-          {/* Price Analysis */}
-          {data?.priceData && (
-            <Grid item xs={12} lg={6}>
-              <PriceAnalysis priceData={data.priceData} />
-            </Grid>
-          )}
+          {/* Market & Price Analysis Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <MarketPriceSection 
+                marketData={data?.marketData}
+                priceData={data?.priceData}
+              />
+            </motion.div>
+          </Grid>
 
-          {/* Risk Assessment */}
-          {data?.riskAssessment && (
-            <Grid item xs={12} md={6}>
-              <RiskAssessment riskAssessment={data.riskAssessment} />
-            </Grid>
-          )}
+          {/* Risk & Trust Assessment Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <RiskTrustSection 
+                riskData={data?.riskData}
+                fraudData={data?.fraudData}
+                trustScoreData={data?.trustScoreData}
+              />
+            </motion.div>
+          </Grid>
 
-          {/* Fraud Detection */}
-          {data?.fraudDetection && (
-            <Grid item xs={12} md={6}>
-              <FraudDetection fraudDetection={data.fraudDetection} />
-            </Grid>
-          )}
+          {/* Creator & Collection Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <CreatorCollectionSection 
+                creatorData={data?.creatorData}
+                collectionData={data?.collectionData}
+              />
+            </motion.div>
+          </Grid>
 
-          {/* Social Metrics */}
+          {/* Portfolio Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <PortfolioSection 
+                portfolioData={data?.portfolioData}
+              />
+            </motion.div>
+          </Grid>
+
+          {/* NFT-Specific Section */}
+          <Grid xs={12} lg={6}>
+            <motion.div {...animationVariants.slideUp}>
+              <NFTSpecificSection 
+                nftData={data?.nftData}
+              />
+            </motion.div>
+          </Grid>
+
+          {/* Legacy Components (for backward compatibility) */}
           {data?.socialMetrics && (
             <Grid item xs={12} md={6}>
               <SocialMetrics socialMetrics={data.socialMetrics} />
             </Grid>
           )}
 
-          {/* Blockchain Metadata */}
           {data?.blockchainMetadata && (
             <Grid item xs={12} md={6}>
               <BlockchainMetadata 
@@ -359,7 +535,6 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
             </Grid>
           )}
 
-          {/* Recent Transactions */}
           {data?.recentTransactions && (
             <Grid item xs={12}>
               <RecentTransactions 
@@ -368,7 +543,8 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
               />
             </Grid>
           )}
-        </Grid>
+          </Grid>
+        </motion.div>
 
         {/* Floating Action Buttons */}
         <Box

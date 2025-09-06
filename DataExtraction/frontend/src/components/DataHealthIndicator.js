@@ -196,24 +196,25 @@ const DataHealthIndicator = ({
                         </Box>
                       }
                       secondary={
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">
+                        <Box component="div">
+                          <Typography variant="caption" color="text.secondary" component="div">
                             {section.description}
                           </Typography>
                           {sectionData.issues.length > 0 && (
-                            <Box mt={0.5}>
+                            <Box mt={0.5} component="div">
                               {sectionData.issues.slice(0, 2).map((issue, index) => (
                                 <Typography 
                                   key={index}
                                   variant="caption" 
                                   color="error"
                                   display="block"
+                                  component="div"
                                 >
                                   • {issue}
                                 </Typography>
                               ))}
                               {sectionData.issues.length > 2 && (
-                                <Typography variant="caption" color="error">
+                                <Typography variant="caption" color="error" component="div">
                                   • ... and {sectionData.issues.length - 2} more issues
                                 </Typography>
                               )}
