@@ -9,7 +9,7 @@ const path = require('path');
 // For older Node.js versions that don't have fetch built-in
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-const PORT = 3001;
+const PORT = process.env.API_PORT ? parseInt(process.env.API_PORT, 10) : 4001;
 const HOST = '127.0.0.1';
 
 // Ethereum API endpoints
@@ -54,12 +54,14 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-// Request logging middleware
+// Request logging middleware (one-liner style)
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  if (req.method === 'POST') {
-    console.log('Request body:', JSON.stringify(req.body));
-  }
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const addr = (req.body && req.body.contractAddress) ? ` ${req.body.contractAddress.substring(0,6)}…` : '';
+    console.log(`[API] ${req.method} ${req.url}${addr} – ${res.statusCode} (${ms} ms)`);
+  });
   next();
 });
 
@@ -332,6 +334,43 @@ async function analyzeNFTData(contractAddress, etherscanData, openSeaData) {
     },
   };
 }
+
+// Health check endpoint
+app.post('/api/analyze', async (req, res) => {
+  console.log('Received request for /api/analyze');
+  console.log('Request body:', req.body);
+
+  const { contractAddress } = req.body;
+
+  if (!contractAddress) {
+    console.error('Error: Contract address is missing in the request body.');
+    return sendJsonResponse(res, 400, {
+      success: false,
+      error: 'Contract address is required in the request body',
+    });
+  }
+
+  try {
+    console.log(`Fetching data for contract: ${contractAddress}`);
+    const etherscanData = await fetchEtherscanData(contractAddress);
+    const openSeaData = await fetchOpenSeaData(contractAddress);
+
+    console.log('Successfully fetched data from Etherscan and OpenSea.');
+
+    const analysisResult = await analyzeNFTData(contractAddress, etherscanData, openSeaData);
+    console.log('Successfully analyzed NFT data. Sending response.');
+
+    return sendJsonResponse(res, 200, analysisResult);
+
+  } catch (error) {
+    console.error(`Error processing analysis for ${contractAddress}:`, error);
+    return sendJsonResponse(res, 500, {
+      success: false,
+      error: 'An unexpected error occurred during analysis.',
+      message: error.message,
+    });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

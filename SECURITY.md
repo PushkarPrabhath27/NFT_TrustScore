@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in the NFT Smart Contract Analysis Dashboard, please report it responsibly:
 
-- **Email:** security@mohan-nftdashboard.com (replace with your actual email)
+- **Email:** Pushkarprabhathrayana@gmail.com
 - **Do not open public issues for security vulnerabilities.**
 - Provide as much detail as possible, including:
   - Steps to reproduce

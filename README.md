@@ -56,7 +56,7 @@ DataExtraction2/
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/PushkarPrabhath27/NFT_TrustScore.git
-cd DataExtraction
+cd DataExtraction2
 ```
 
 ### 2. Install Dependencies

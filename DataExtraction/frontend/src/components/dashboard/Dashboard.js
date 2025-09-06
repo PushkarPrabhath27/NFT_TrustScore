@@ -111,6 +111,7 @@ const Dashboard = ({ section = 'main' }) => {
   
   // Local state for additional data
   const [contractAddress, setContractAddress] = useState('');
+  const [inputAddress, setInputAddress] = useState('');
   const [userId, setUserId] = useState('user123'); // Mock user ID
   const [timelineData, setTimelineData] = useState(null);
   const [predictiveData, setPredictiveData] = useState(null);
@@ -120,7 +121,7 @@ const Dashboard = ({ section = 'main' }) => {
   const [marketInsightsData, setMarketInsightsData] = useState(null);
   const [analysisInProgress, setAnalysisInProgress] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  const [cleanupFunction, setCleanupFunction] = useState(null);
+  const socketRef = useRef(null);
   const [analysisData, setAnalysisData] = useState(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,100 +144,7 @@ const Dashboard = ({ section = 'main' }) => {
     };
   }, [riskData]);
 
-  // Define fetchAdditionalData function to generate mock data
-  const fetchAdditionalData = useCallback((address) => {
-    console.log('[Dashboard] Fetching additional data for:', address);
-    try {
-      // Mock timeline data
-      const mockTimelineData = Array(10).fill(0).map((_, i) => ({
-        id: i,
-        date: new Date(Date.now() - (9 - i) * 30 * 24 * 60 * 60 * 1000),
-        event: `Event ${i}`,
-        value: Math.random() * 10,
-        type: ['mint', 'sale', 'transfer', 'listing'][Math.floor(Math.random() * 4)]
-      }));
-      setTimelineData(mockTimelineData);
-      
-      // Mock predictive data
-      const mockPredictiveData = {
-        predictions: Array(7).fill(0).map((_, i) => ({
-          date: new Date(Date.now() + i * 24 * 60 * 60 * 1000),
-          predicted: 2 + Math.random() * 3,
-          actual: i < 3 ? 2 + Math.random() * 3 : null
-        })),
-        confidence: 0.85,
-        trend: 'upward'
-      };
-      setPredictiveData(mockPredictiveData);
-      
-      // Mock fraud detection data
-      const mockFraudData = {
-        riskScore: Math.random() * 100,
-        anomalies: [
-          { type: 'price', severity: Math.random() * 100, description: 'Unusual price movement' },
-          { type: 'volume', severity: Math.random() * 100, description: 'Suspicious trading volume' },
-          { type: 'wallet', severity: Math.random() * 100, description: 'New wallet interactions' }
-        ],
-        recommendations: [
-          'Monitor trading patterns',
-          'Verify contract source code',
-          'Check creator credentials'
-        ]
-      };
-      setFraudData(mockFraudData);
-      
-      // Mock market insights data
-      const mockMarketInsightsData = {
-        trends: [
-          { name: 'Floor Price', data: Array(30).fill(0).map((_, i) => 0.5 + Math.sin(i / 5) * 0.2) },
-          { name: 'Volume', data: Array(30).fill(0).map((_, i) => 20 + Math.random() * 15) }
-        ],
-        comparisons: [
-          { name: 'Similar NFT 1', price: 0.8, change: 2.5 },
-          { name: 'Similar NFT 2', price: 1.2, change: -1.8 },
-          { name: 'Similar NFT 3', price: 0.6, change: 0.7 }
-        ],
-        marketMetrics: [
-          { name: 'Floor Price', value: 0.5, change: 3.2 },
-          { name: '24h Volume', value: 45.8, change: 12.5 },
-          { name: 'Market Cap', value: 1250000, change: 5.7 },
-          { name: 'Holders', value: 3500, change: 2.1 }
-        ]
-      };
-      setMarketInsightsData(mockMarketInsightsData);
-      
-      // Mock AR data
-      const mockArData = {
-        modelUrl: null,
-        previewImageUrl: null,
-        hasArModel: false,
-        modelType: 'placeholder',
-        dimensions: { width: 500, height: 500, depth: 500 }
-      };
-      setArData(mockArData);
-      
-      // Mock portfolio data
-      const mockPortfolioData = {
-        holdings: [
-          { id: 1, name: 'NFT 1', value: 0.5, change: 5.2 },
-          { id: 2, name: 'NFT 2', value: 1.2, change: -2.3 },
-          { id: 3, name: 'NFT 3', value: 0.8, change: 1.7 }
-        ],
-        totalValue: 2.5,
-        totalChange: 1.8,
-        history: Array(30).fill(0).map((_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000),
-          value: 2 + Math.sin(i / 4) * 0.5
-        }))
-      };
-      setPortfolioData(mockPortfolioData);
-      
-      console.log('[Dashboard] Mock data generated successfully');
-    } catch (error) {
-      console.error('[Dashboard] Error generating mock data:', error);
-      setError('Failed to generate visualization data');
-    }
-  }, [setError]);
+
   
   // Process analytics data for cards
   const analyticsMetrics = useMemo(() => {
@@ -301,271 +209,131 @@ const Dashboard = ({ section = 'main' }) => {
     transition: { duration: 2, repeat: Infinity }
   } : {};
 
-  // Automatically fetch data when component mounts
   useEffect(() => {
-    const fetchNFTData = async () => {
-      setAnalysisInProgress(true);
-      setIsLoading(true);
-      setError(null);
+    if (!contractAddress) return;
+
+    setAnalysisInProgress(true);
+    setIsLoading(true);
+    setError(null);
+
+    const socket = new WebSocket('ws://localhost:3004/ws');
+    socketRef.current = socket;
+
+    socket.onopen = () => {
+      console.log('[Frontend] WebSocket connected');
+      setWsConnected(true);
+      socket.send(JSON.stringify({ type: 'analyze', contractAddress }));
+    };
+
+    socket.onmessage = (event) => {
+      console.log('[Frontend] Raw WebSocket message received:', event.data);
       
       try {
-        // Make sure to validate trust score on component mount
-        validateTrustScore();
-        
-        // Use HTTP-based polling approach instead of WebSockets
-        console.log('[Dashboard] Setting up HTTP polling connection');
-        
-        // Initialize connection
-        const connectResponse = await fetch('http://localhost:3001/api/ws-connect', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!connectResponse.ok) {
-          throw new Error(`Failed to connect: ${connectResponse.status}`);
-        }
-        
-        const connectData = await connectResponse.json();
-        const sessionId = connectData.sessionId;
-        console.log(`[Dashboard] Connection established with session ID: ${sessionId}`);
-        setWsConnected(true);
-        
-        // Set up polling interval
-        const pollInterval = setInterval(async () => {
-          try {
-            const pollResponse = await fetch(`http://localhost:3001/api/ws-poll/${sessionId}`);
-            if (!pollResponse.ok) {
-              console.error(`[Dashboard] Polling error: ${pollResponse.status}`);
-              return;
-            }
-            
-            const pollData = await pollResponse.json();
-            
-            // Process any messages
-            if (pollData.messages && pollData.messages.length > 0) {
-              pollData.messages.forEach(message => {
-                console.log('[Dashboard] Received message:', message);
-                
-                if (message.type === 'analysis_result') {
-                  if (message.data) {
-                    setNFTData(message.data);
-                    setLastUpdated(message.data.lastUpdated);
-                    setIsLoading(false);
-                    
-                    // Fetch additional data for new components
-                    fetchAdditionalData(message.data.contractAddress);
-                  }
-                }
-              });
-            }
-          } catch (error) {
-            console.error('[Dashboard] Polling error:', error);
-          }
-        }, 1000); // Poll every second
-        
-        // Send section info if needed
-        if (section !== 'main') {
-          await fetch('http://localhost:3001/api/ws-send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              sessionId,
-              message: { type: 'section', section }
-            })
-          });
-        }
-        
-        // Return cleanup function
-        return () => {
-          clearInterval(pollInterval);
-          
-          // Close the connection
-          fetch('http://localhost:3001/api/ws-close', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ sessionId })
-          }).catch(error => {
-            console.error('[Dashboard] Error closing connection:', error);
-          });
-        };
-      } catch (error) {
-        console.error('[Dashboard] Error setting up connection:', error);
-        setError('Error setting up connection. Attempting HTTP fallback.');
-        fallbackToHttpRequest();
-      }
-    };
-    
-    // HTTP fallback function for when WebSocket connection fails
-    const fallbackToHttpRequest = async () => {
-      try {
-        console.log('[Dashboard] Falling back to HTTP request');
-        setIsLoading(true);
-        
-        const response = await fetch('http://127.0.0.1:3001/api/nft-data');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('[Dashboard] Received HTTP data:', data);
-        
-        updateData({
-          trustScore: data.trustScore,
-          nftData: data,
-          riskData: data.riskData,
-          priceData: data.priceData || null,
-          analyticsData: data.analytics,
-          lastUpdated: new Date().toISOString()
-        });
-        setError(null);
-        
-        // Generate mock data for additional visualizations
-        try {
-          // Mock timeline data
-          const mockTimelineData = [
-            { date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), event: 'Contract Created', value: 0, type: 'creation' },
-            { date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), event: 'First Sale', value: 1.2, type: 'sale' },
-            { date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), event: 'Floor Price Change', value: 1.5, type: 'price' },
-            { date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), event: 'Volume Spike', value: 3.7, type: 'volume' },
-            { date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), event: 'Whale Purchase', value: 4.1, type: 'purchase' },
-            { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), event: 'Collection Trend', value: 4.8, type: 'trend' },
-            { date: new Date(), event: 'Current Activity', value: 5.2, type: 'current' }
-          ];
-          setTimelineData(mockTimelineData);
-          
-          // Mock predictive analytics data
-        const mockPredictiveData = {
-          pricePrediction: {
-            current: 2.5,
-            oneDay: 2.7,
-            oneWeek: 3.1,
-            oneMonth: 3.8,
-            confidence: 0.75
-          },
-          volumePrediction: {
-            current: 45,
-            oneDay: 50,
-            oneWeek: 65,
-            oneMonth: 80,
-            confidence: 0.68
-          },
-          trendIndicators: [
-            { name: 'Market Sentiment', impact: 0.8, direction: 'positive' },
-            { name: 'Whale Activity', impact: 0.6, direction: 'positive' },
-            { name: 'Social Media Buzz', impact: 0.9, direction: 'positive' },
-            { name: 'Similar NFTs Performance', impact: 0.5, direction: 'neutral' },
-            { name: 'Creator Reputation', impact: 0.7, direction: 'positive' }
-          ]
-        };
-        setPredictiveData(mockPredictiveData);
+        const message = JSON.parse(event.data);
+        console.log('[Frontend] Parsed WebSocket message:', message);
 
-        // Mock fraud detection data
-        const mockFraudData = {
-          riskScore: Math.floor(Math.random() * 100),
-          indicators: [
-            { name: 'Wash Trading', value: Math.floor(Math.random() * 100), threshold: 70 },
-            { name: 'Price Manipulation', value: Math.floor(Math.random() * 100), threshold: 65 },
-            { name: 'Fake Volume', value: Math.floor(Math.random() * 100), threshold: 75 },
-            { name: 'Suspicious Transfers', value: Math.floor(Math.random() * 100), threshold: 80 }
-          ],
-          recentAlerts: [
-            { type: 'warning', message: 'Unusual trading pattern detected', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) },
-            { type: 'info', message: 'Price volatility above market average', timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000) },
-            { type: 'critical', message: 'Potential wash trading activity', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-          ]
-        };
-        setFraudData(mockFraudData);
-
-        // Mock market insights data
-        const mockMarketInsightsData = {
-          volatility: 'medium',
-          trend: 'stable',
-          liquidity: 'medium',
-          sentiment: 'positive',
-          comparableCollections: [
-            { name: 'Similar Collection 1', price: '0.45', change: '+5.2%' },
-            { name: 'Similar Collection 2', price: '0.62', change: '-2.1%' },
-            { name: 'Similar Collection 3', price: '0.38', change: '+1.8%' }
-          ],
-          marketMetrics: [
-            { name: 'Floor Price', value: data.floorPrice || 0.5, change: 3.2 },
-            { name: '24h Volume', value: data.volume24h || 45.8, change: 12.5 },
-            { name: 'Market Cap', value: data.marketCap || 1250000, change: 5.7 },
-            { name: 'Holders', value: data.holders || 3500, change: 2.1 }
-          ]
-        };
-        setMarketInsightsData(mockMarketInsightsData);
-          // Process risk data for visualization
-          const processedRisk = data.riskData ? {
-            overall: data.riskData.overallRisk || 50,
-            metrics: [
-              { name: 'Smart Contract', value: data.riskData.contractRisk || 0, description: 'Smart contract security assessment' },
-              { name: 'Market Volatility', value: data.riskData.marketRisk || 0, description: 'Price stability and market conditions' },
-              { name: 'Liquidity', value: data.riskData.liquidityRisk || 0, description: 'Trading volume and liquidity assessment' },
-              { name: 'Creator History', value: data.riskData.creatorRisk || 0, description: 'Creator reputation and history' },
-              { name: 'Ownership', value: data.riskData.ownershipRisk || 0, description: 'Ownership concentration risk' }
-            ]
-          } : null;
-          setProcessedRiskData(processedRisk);
-          
-          // Mock AR data
-          const mockArData = {
-            modelUrl: null, // In a real app, this would be a URL to a 3D model
-            previewImageUrl: null, // In a real app, this would be a URL to a preview image
-            hasArModel: false,
-            modelType: 'placeholder',
-            dimensions: { width: 500, height: 500, depth: 500 }
-          };
-          setArData(mockArData);
-          
-          // Mock portfolio data
-          const mockPortfolioData = {
-            holdings: [
-              { id: 1, name: 'NFT 1', value: 0.5, change: 5.2 },
-              { id: 2, name: 'NFT 2', value: 1.2, change: -2.3 },
-              { id: 3, name: 'NFT 3', value: 0.8, change: 1.7 }
-            ],
-            totalValue: 2.5,
-            totalChange: 1.8,
-            history: Array(30).fill(0).map((_, i) => ({
-              date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000),
-              value: 2 + Math.sin(i / 4) * 0.5
-            }))
-          };
-          setPortfolioData(mockPortfolioData);
-          
-          console.log('[Dashboard] Mock data generated successfully');
-        } catch (mockError) {
-          console.error('[Dashboard] Error generating mock data:', mockError);
+        if (message.type === 'analysis' || message.type === 'update') {
+          console.log('[Frontend] Updating state with received data:', message.data.data);
+          setNFTData(message.data.data);
+          setLastUpdated(message.data.data.lastUpdated);
+          setIsLoading(false);
+        } else {
+          console.warn('[Frontend] Received unhandled message type:', message.type);
         }
       } catch (error) {
-        console.error('[Dashboard] Error fetching data via HTTP:', error);
-        setError('Failed to connect to the backend server via HTTP.');
-      } finally {
-        setAnalysisInProgress(false);
-        setIsLoading(false);
+        console.error('[Frontend] Error parsing WebSocket message JSON:', error);
       }
     };
-    
-    // Call fetchNFTData on component mount
-    fetchNFTData();
-    // Return cleanup function
-    return typeof cleanupFunction === 'function' ? cleanupFunction : () => {};
-  }, [contractAddress, fetchAdditionalData, updateData, setError]);
+
+    socket.onerror = (e) => {
+      console.error('WebSocket error', e);
+      setError('WebSocket connection error. Please ensure the server is running.');
+      setIsLoading(false);
+    };
+
+    socket.onclose = () => {
+      console.warn('WebSocket closed');
+      setWsConnected(false);
+      setAnalysisInProgress(false);
+    };
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+    };
+  }, [contractAddress, setNFTData, setLastUpdated, setError]);
+
+  const handleSearch = () => {
+    if (!inputAddress.trim()) {
+      setError('Please enter a contract address.');
+      return;
+    }
+    setContractAddress(inputAddress.trim());
+  };
   
+  const renderHeader = () => (
+    <div className="mb-6 flex items-center space-x-4 p-4 rounded-lg bg-gray-800/50">
+      <TextField
+        label="Contract Address"
+        variant="outlined"
+        fullWidth
+        value={inputAddress}
+        onChange={(e) => setInputAddress(e.target.value)}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
+        placeholder="Enter NFT contract address..."
+        sx={{
+            '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                    borderColor: 'rgba(147, 51, 234, 0.5)',
+                },
+                '&:hover fieldset': {
+                    borderColor: 'rgba(147, 51, 234, 1)',
+                },
+            },
+            '& .MuiInputLabel-root': {
+                color: 'rgba(255, 255, 255, 0.7)',
+            },
+            'input': {
+                color: 'white',
+            }
+        }}
+      />
+      <Button
+        variant="contained"
+        onClick={handleSearch}
+        disabled={analysisInProgress}
+        sx={{ 
+            backgroundColor: '#9333ea', 
+            '&:hover': { backgroundColor: '#7e22ce' },
+            height: '56px',
+            px: 4
+        }}
+      >
+        {analysisInProgress ? <CircularProgress size={24} color="inherit" /> : 'Analyze'}
+      </Button>
+    </div>
+  );
+
   // Define renderMainDashboard function
   const renderMainDashboard = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <CircularProgress />
+          <p className="ml-4 text-gray-400">Analyzing... Please wait.</p>
+        </div>
+      );
+    }
+
     if (!nftData) {
       return (
         <div className="flex items-center justify-center py-12">
-          <p className="text-gray-400">No NFT data available. Please enter a contract address to analyze.</p>
+          <p className="text-gray-400">Enter a contract address above to begin analysis.</p>
         </div>
       );
     }
@@ -787,6 +555,8 @@ const Dashboard = ({ section = 'main' }) => {
             </p>
           </motion.div>
         )}
+
+        {renderHeader()}
 
         {/* Render the appropriate dashboard section */}
         {section === 'main' && renderMainDashboard()}

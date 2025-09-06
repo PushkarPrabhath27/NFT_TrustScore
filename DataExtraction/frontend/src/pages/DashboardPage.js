@@ -229,52 +229,77 @@ const DashboardPage = () => {
     }
   }, [contractAddress, processApiData, setStoreError]);
 
-  // Set up polling connection for real-time updates
+  // Set up initial data fetch and polling for updates
   useEffect(() => {
+    let mounted = true;
     let intervalId = null;
-    if (contractAddress) {
-      // Initial data fetch
-      fetchData();
-      // Set up polling connection for real-time updates
-      console.log('[DashboardPage] Setting up polling connection for', contractAddress);
-      const pollData = async () => {
-        try {
-          if (loading || refreshing) {
-            console.log('[DashboardPage] Skipping poll while loading/refreshing');
-            return;
-          }
-          const response = await apiService.fetchNFTData(contractAddress);
-          console.log('[DashboardPage] Received polling data:', response);
-          if (response && response.success && response.data) {
-            processApiData(response);
-            setData(response);
-            setLastUpdated(new Date());
-            const key = `nftAnalysis_${contractAddress}`;
-            localStorage.setItem(key, JSON.stringify(response));
-          }
-        } catch (error) {
-          console.error('[DashboardPage] Error polling data:', error);
-        }
-      };
-      if (!intervalId) {
-        intervalId = setInterval(pollData, 10000);
-        console.log('[DashboardPage] Created polling interval:', intervalId);
+
+    const fetchInitialData = async () => {
+      if (!contractAddress) {
+        setError('No contract address provided');
+        setLoading(false);
+        return;
       }
-      // Clean up the polling connection when the component unmounts or contractAddress changes
-      return () => {
-        if (intervalId) {
-          console.log('[DashboardPage] Cleaning up polling connection:', intervalId);
-          clearInterval(intervalId);
-          intervalId = null;
+
+      try {
+        setLoading(true);
+        const response = await apiService.fetchNFTData(contractAddress);
+        
+        if (!mounted) return;
+
+        if (response && response.success && response.data) {
+          processApiData(response);
+          setData(response);
+          setLastUpdated(new Date());
+          const key = `nftAnalysis_${contractAddress}`;
+          localStorage.setItem(key, JSON.stringify(response));
+        } else {
+          throw new Error('Invalid response format');
         }
-      };
-    } else {
-      setError('No contract address provided');
-      setLoading(false);
-      // Always return a cleanup function to avoid runtime errors
-      return () => {};
-    }
-  }, [contractAddress, fetchData, loading, refreshing]);
+      } catch (error) {
+        if (!mounted) return;
+        console.error('[DashboardPage] Error fetching initial data:', error);
+        setError(error.message || 'Failed to fetch NFT analysis');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const pollData = async () => {
+      if (!mounted || loading || refreshing) return;
+
+      try {
+        const response = await apiService.fetchNFTData(contractAddress);
+        
+        if (!mounted) return;
+
+        if (response && response.success && response.data) {
+          processApiData(response);
+          setData(response);
+          setLastUpdated(new Date());
+          const key = `nftAnalysis_${contractAddress}`;
+          localStorage.setItem(key, JSON.stringify(response));
+        }
+      } catch (error) {
+        if (!mounted) return;
+        console.error('[DashboardPage] Error polling data:', error);
+      }
+    };
+
+    // Start initial fetch and polling
+    fetchInitialData();
+    intervalId = setInterval(pollData, 10000);
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [contractAddress, processApiData, loading, refreshing]);
 
   const handleRefresh = () => {
     fetchData(true);

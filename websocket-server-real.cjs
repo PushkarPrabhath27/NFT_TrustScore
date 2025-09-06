@@ -2,7 +2,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
 
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 3004;
 const HOST = '127.0.0.1';
 
 // Create HTTP server
@@ -38,7 +38,7 @@ const server = http.createServer((req, res) => {
 });
 
 // Create WebSocket server
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, path: '/ws' });
 
 // Store active connections and their data
 const activeConnections = new Map();
@@ -48,7 +48,8 @@ async function fetchRealTimeData(contractAddress) {
   try {
     // In a real implementation, this would fetch data from blockchain APIs
     // For this example, we'll use our existing API server to get the initial data
-    const response = await fetch(`http://${HOST}:3001/api/analyze`, {
+    console.log(`[WebSocket Server] Fetching data from API for address: ${contractAddress}`);
+    const response = await fetch(`http://${HOST}:4001/api/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,6 +62,9 @@ async function fetchRealTimeData(contractAddress) {
     }
     
     const data = await response.json();
+    console.log('[WebSocket Server] Received data from API server. Status:', response.status);
+    // Log only a portion of the data to avoid flooding the console
+    console.log('[WebSocket Server] Data snippet:', JSON.stringify(data, null, 2).substring(0, 500));
     return data;
   } catch (error) {
     console.error(`Error fetching data for ${contractAddress}:`, error);
@@ -131,7 +135,7 @@ function updateRealTimeData(data) {
 
 // Handle WebSocket connections
 wss.on('connection', (ws) => {
-  console.log('Client connected');
+  console.log('Client connected to WebSocket');
   let contractAddress = null;
   
   // Send connection confirmation

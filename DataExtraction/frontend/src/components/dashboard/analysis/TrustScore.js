@@ -21,7 +21,7 @@ const TrustScore = ({ trustScoreData }) => {
             <ListItem key={idx}>
               <ListItemText
                 primary={factor.name}
-                secondary={`Score: ${factor.value} (${factor.description || ''})`}
+                secondary={`Score: ${factor.score !== undefined ? factor.score : (factor.impact !== undefined ? factor.impact : factor.value)}${factor.description ? ` (${factor.description})` : ''}`}
               />
             </ListItem>
           ))}
