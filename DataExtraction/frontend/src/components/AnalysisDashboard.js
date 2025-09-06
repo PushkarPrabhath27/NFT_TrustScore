@@ -49,6 +49,7 @@ import DataFlowTest from './DataFlowTest';
 import RawDataViewer from './RawDataViewer';
 import DataHealthIndicator from './DataHealthIndicator';
 import { groupAnalysisData, getOverallDataHealth, createDebugSummary } from '../utils/dataGrouping';
+import { mapBackendDataToFrontend, validateMappedData } from '../utils/dataMapping';
 import { animationVariants, dashboardStyles } from '../theme/dashboardTheme';
 
 const AnalysisDashboard = ({ contractAddress, onError }) => {
@@ -93,25 +94,49 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
 
     // Check localStorage first if not refreshing
     if (!isRefresh) {
+      // Check for cached mapped data first
+      const cachedMappedData = localStorage.getItem(`nftAnalysis_mapped_${contractAddress}`);
+      if (cachedMappedData) {
+        try {
+          const parsedMappedData = JSON.parse(cachedMappedData);
+          console.log('[AnalysisDashboard] Found cached mapped data:', {
+            hasData: !!parsedMappedData,
+            dataKeys: parsedMappedData ? Object.keys(parsedMappedData) : []
+          });
+          
+          if (parsedMappedData && typeof parsedMappedData === 'object') {
+            console.log('[AnalysisDashboard] Using cached mapped data');
+            setData(parsedMappedData);
+            setLastUpdated(new Date());
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error('[AnalysisDashboard] Error parsing cached mapped data:', error);
+        }
+      }
+      
+      // Fallback to original cached data
       const cachedData = localStorage.getItem(`nftAnalysis_${contractAddress}`);
       if (cachedData) {
         try {
           const parsedData = JSON.parse(cachedData);
-          console.log('[AnalysisDashboard] Found cached data:', {
+          console.log('[AnalysisDashboard] Found cached original data:', {
             success: parsedData?.success,
             hasData: !!parsedData?.data,
             dataKeys: parsedData?.data ? Object.keys(parsedData.data) : []
           });
           
           if (parsedData?.success && parsedData?.data) {
-            console.log('[AnalysisDashboard] Using cached data');
-            setData(parsedData.data);
+            console.log('[AnalysisDashboard] Using cached original data (mapping now)');
+            const mappedData = mapBackendDataToFrontend(parsedData.data);
+            setData(mappedData);
             setLastUpdated(new Date());
             setLoading(false);
             return;
           }
         } catch (error) {
-          console.error('[AnalysisDashboard] Error parsing cached data:', error);
+          console.error('[AnalysisDashboard] Error parsing cached original data:', error);
           // Continue to fetch fresh data if cache parsing fails
         }
       }
@@ -176,10 +201,21 @@ const AnalysisDashboard = ({ contractAddress, onError }) => {
         'riskData type': typeof result.data?.riskData
       });
       
-      // Store in localStorage
-      localStorage.setItem(`nftAnalysis_${contractAddress}`, JSON.stringify(result));
+      // Map backend data to frontend structure
+      const mappedData = mapBackendDataToFrontend(result.data);
+      const validation = validateMappedData(mappedData);
       
-      setData(result.data);
+      console.log('🔄 [AnalysisDashboard] Data mapping completed:', {
+        originalDataKeys: result.data ? Object.keys(result.data) : [],
+        mappedDataKeys: Object.keys(mappedData),
+        validationResults: validation
+      });
+      
+      // Store both original and mapped data in localStorage
+      localStorage.setItem(`nftAnalysis_${contractAddress}`, JSON.stringify(result));
+      localStorage.setItem(`nftAnalysis_mapped_${contractAddress}`, JSON.stringify(mappedData));
+      
+      setData(mappedData);
       setLastUpdated(new Date());
       
       if (isRefresh) {
